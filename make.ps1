@@ -1,4 +1,6 @@
-#collect all files
+#collect all files - this is formatted the way that it is to handle
+#filenames with spaces.  This script is intended only for use on Windows,
+#but except for the optimization at the end, works fine in Powershell on Linux as well.
 $baseFiles = (Get-ChildItem doc -File -Recurse | sort-object FullName | select-object -exp FullName)
 Write-Host $baseFiles | Format-Table
 
@@ -8,13 +10,9 @@ foreach ($currentItemName in $baseFiles) {
     $files.Add(($currentItemName).Replace(' ','\ '))
 }
 
+# all the arguments that were passed to the script are forwarded to the command
 $allArgs = $PsBoundParameters.Values + $args
 Write-Host $allArgs
 
-$cmdLine = "--from=markdown " + $files + " " + $allArgs
-Write-Host $cmdLine
-
-& "pandoc" $cmdLine.Split(" ")
-
-# cmd.exe /c "pandoc.exe" $cmdLine
-Write-Host "Complete."
+& "pandoc" $cmdLine $files $allArgs -o out\Document.pdf
+.\pdfsizeopt-win32\pdfsizeopt.exe out\Document.pdf
