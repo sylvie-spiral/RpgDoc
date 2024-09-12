@@ -1,18 +1,35 @@
 #collect all files - this is formatted the way that it is to handle
 #filenames with spaces.  This script is intended only for use on Windows,
 #but except for the optimization at the end, works fine in Powershell on Linux as well.
-$baseFiles = (Get-ChildItem doc -File -Recurse | sort-object FullName | select-object -exp FullName)
-Write-Host $baseFiles | Format-Table
+$files = (Get-ChildItem doc -File -Recurse -Exclude *.css | sort-object FullName | select-object -exp FullName)
+$cssFiles = (Get-ChildItem doc -File -Recurse -Filter *.css | sort-object FullName | select-object -exp FullName)
 
-$files = [System.Collections.Generic.List[string]]::new()
+$css = [System.Collections.Generic.List[string]]::new();
 
-foreach ($currentItemName in $baseFiles) {
-    $files.Add(($currentItemName).Replace(' ','\ '))
+Write-Host '----'
+
+Write-Host $files | Format-Table
+
+foreach ($currentItemName in $cssFiles) {
+    $css.Add('-c')
+    $css.Add($currentItemName)
 }
+
+Write-Host '----'
+
+Write-Host [String::Join](" ", $css) 
+
+Write-Host '----'
 
 # all the arguments that were passed to the script are forwarded to the command
 $allArgs = $PsBoundParameters.Values + $args
 Write-Host $allArgs
 
-& "pandoc" $cmdLine $files $allArgs -o out\Document.pdf
+Write-Host '----'
+Write-Host 'Starting PanDoc'
+& "pandoc" -s --embed-resources  --template=template.html @($files) @($css) $allArgs -o out\Document.html
+& "wkhtmltopdf" -s Letter --print-media-type -L 0 -R 0 -T 0 -B 0 .\out\Document.html .\out\Document.pdf
+
+Write-Host '----'
+Write-Host 'Starting PDFSizeOpt'
 .\pdfsizeopt-win32\pdfsizeopt.exe out\Document.pdf
